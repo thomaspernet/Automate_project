@@ -1,0 +1,6 @@
+jupyter contrib nbextension install --user
+jupyter nbextension enable collapsible_headings/main
+jupyter nbextension enable code_prettify/autopep8
+jupyter nbextension enable --py --sys-prefix qgrid
+conda env update -f environment.yml --prune
+
