@@ -5,6 +5,8 @@ dependencies:
   - numpy
   - psutil
   - pandas
+  - xlrd
+  - matplotlib
   - pip:
      - jupyter_contrib_nbextensions
      - ipywidgets
