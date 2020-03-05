@@ -1,0 +1,148 @@
+#!/usr/bin/env python
+import sys
+import argparse
+import pandas as pd
+import re
+from GoogleDrivePy.google_drive import connect_drive
+from Fast_connectCloud import connector
+
+##### Function to run the program
+def prepare_transfert(nameFile, gdr = None, move_to_drive = False):
+    """
+    """
+    ### Get topic
+    regex = r"\.[^.]*$"
+    topic = re.sub(regex, '', nameFile)
+    
+    ### Load excel
+
+    print('Loading {}'.format(nameFile))
+    df = pd.read_excel(nameFile)
+    
+    ### Add vars
+    df['Topic'] = topic
+    date_today = pd.Timestamp.today()
+    df['Date_added'] = date_today
+    df['Date_added'] = df['Date_added'].dt.strftime('%Y-%m-%d')
+    
+    ### Drop useless vars
+    df = df.drop(columns = ['Highlight Color', 'Highlight Color Code'])
+    
+    ### Reorder
+    reorder = ['Topic', 'Date', 'Date_added', 'Website Title',
+           'URL', 'Color Category', 'Highlighted Text', 'Note']
+
+    df = df[reorder]
+
+    na_note = df['Note'].isna().sum()
+    if na_note != 0:
+        df = df.fillna("#{}".format(topic))
+        print("""
+        There are {} highlights without tags over {}. 
+        It is about {:.0%} of the total
+        Each empty highlight is filled by #{}
+        """.format(na_note,df.shape[0],na_note/df.shape[0], topic))
+    
+    ### Compare with existing data
+    #### Always this spreadsheet
+    
+    sheetID = '1B5hi8fKckMY15BA3g1a9t7wBtG1IEJiw5mmyKS1Exwc'
+    sheetName = 'MetaData'
+    df_master = gdr.upload_data_from_spreadsheet(sheetID,
+                                                 sheetName,
+                                                 to_dataframe = True)
+    
+    #### Extract only same topic
+    
+    df_master =  df_master[df_master['Topic'] == topic]
+    
+    ### Return from df only new highlights
+    
+    toCompare = df_master['Highlighted Text'].tolist()
+    new_highlights = df[~df['Highlighted Text'].isin(toCompare)]
+    
+    if new_highlights.empty:
+        print('The Excel file {0} does not contain new highlights'.format(nameFile))
+        exit()
+    else:
+        n_newHighlights = new_highlights.shape[0]
+        print("""
+    {} new highlights will be added to MasterFile and Dynalist.
+    Feel free to move to Dynalist the new highlights and change the Status to
+    Transfered """.format(n_newHighlights))
+    #### Reshape to Dynalist
+    
+    col_needed = ['Highlighted Text' , 'Website Title', 'Note', 'Color Category']
+    df_dynalist = new_highlights.copy()
+    df_dynalist = df_dynalist[col_needed]
+    df_dynalist['ID'] = df_dynalist['Website Title'
+                                 ].rank(
+    method='dense').astype(int)
+    df_dynalist = df_dynalist.set_index(['ID', 'Note', 'Color Category'])
+    df_dynalist = df_dynalist.stack().reset_index()
+    df_dynalist = df_dynalist.rename(
+    columns={
+             'level_3' : 'origin',
+             0: 'highlights'})
+    df_dynalist['Topic'] = topic
+    df_dynalist['Date_added'] = date_today
+    df_dynalist['Date_added'] = df_dynalist['Date_added'].dt.strftime('%Y-%m-%d')
+    df_dynalist['status'] = 'Pending'
+    reorder = ['Topic', 'Date_added', 'ID', 'Color Category', 'Note', 'origin',
+               'highlights', 'status']
+    
+    df_dynalist = df_dynalist[reorder]
+    
+    #### Move to Google Spreadsheet
+    if move_to_drive:
+        gdr.add_data_to_spreadsheet(data = new_highlights,
+                        sheetID = sheetID,
+                        sheetName = sheetName,
+                        detectRange = True,
+                        rangeData = None)
+    
+        gdr.add_data_to_spreadsheet(data = df_dynalist,
+                        sheetID = sheetID,
+                        sheetName = 'Transfert_knowledge',
+                        detectRange = True,
+                        rangeData = None)
+
+    
+
+
+
+desc = """\
+A tool to transfert highlights from Weava to dynalist with Google Spreadsheet"""
+
+parser = argparse.ArgumentParser(description=desc)
+
+parser.add_argument('-p', '--path_filename', help='Excel file containing' \
+ ' Weava highlight for a given project',
+  required=True)
+
+parser.add_argument('-t', '--path_token', help='Path to connect to Google Drive' \
+ 'If you dont have a credential, load the library ' \
+ 'github.com/thomaspernet/ConnectGoogleCloud-DataLab and run the function connector.get_token()',
+  required=True)
+
+args = parser.parse_args()
+filename = args.path_filename
+pathtoken = args.path_token
+
+if len(sys.argv) == 1:
+    parser.print_help()
+    sys.exit()
+
+
+gs = connector.open_connection(online_connection = False, 
+    path_credential = pathtoken)
+
+service_gd = gs.connect_remote(engine = 'GS')
+gdr = connect_drive.connect_drive(service_gd['GoogleDrive'])
+
+n_newHighlights = prepare_transfert(filename, gdr = gdr, move_to_drive = True)
+
+
+
+
+

@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+import os
+import argparse
+import sys
+from tqdm import tqdm
+
+def find_path_folder(projectname, option = 'preprocessing'):
+    """
+    Locate the folder:
+    'Notebook_analysis_lab'
+    """
+    #directory = directory.replace(' ', '_')
+    exclude_prefixes = ('__', '.')
+    #basepath = os.path.join('/Users/', username + '/')
+    basepath = "/Users/thomas/Google Drive/Projects/Data_science/GitHub/Repositories"
+    for root, subdirs, files in os.walk(basepath):
+        subdirs[:] = [subdirs
+                       for subdirs in subdirs
+                       if not subdirs.startswith(exclude_prefixes)]
+        for d in subdirs:
+            if d == projectname:
+                path_ = os.path.join(root, d)
+
+    if option == 'preprocessing':
+        path_ = os.path.join(path_, 'Data_preprocessing')
+    elif option == 'analysis':
+        path_ = os.path.join(path_, 'Data_analysis')
+    elif option == 'root':
+        pass
+    else:
+        path_ = os.path.join(path_, 'studio')
+
+    try:
+        if path_:
+            print('Notebook Found at {0}'.format(path_))
+            return path_
+    except:
+        print('Cannot find directory {}'.format(projectname))
+        exit()
+
+desc = """\
+A tool to connect to Jupyter Lab in your machine"""
+
+parser = argparse.ArgumentParser(description=desc)
+
+parser.add_argument('-u', '--option', help='Define the directory to use' \
+	'Should be one of the following: "preprocessing", "analysis", "root" or' \
+	' "studio"',required=True)
+
+parser.add_argument('-p', '--projectname', help='Name of the project' \
+   'It should match the project name in Coda.io doc', required=True)
+
+parser.add_argument('-m', '--method', help='Define what Notebook to open' \
+      'Jupyter lab, or Jupyter notebook. By default Lab, else Notebook', required=False)
+
+args = parser.parse_args()
+option = args.option
+projectname = args.projectname
+method = args.method
+
+if len(sys.argv) == 1:
+    parser.print_help()
+    sys.exit()
+
+path_ = find_path_folder(projectname = projectname, option = option)
+
+#### Environment fixed
+
+if method == 'Notebook':
+    lab_ = 'jupyter notebook --notebook-dir="{0}/"'
+else:
+    lab_ = 'jupyter lab --notebook-dir="{0}/"'
+
+
+run_lab = lab_.format(path_)
+
+
+os.system(run_lab)
