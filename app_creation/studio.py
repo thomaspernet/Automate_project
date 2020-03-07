@@ -21,8 +21,8 @@ class connector_notebook:
 
           #notebook_name = self.params['notebook_name']
           project_name = self.params['project_name']
-          input_datasets = self.params['input_datasets'][0] ### Only one dataset, but its a list
-          sheetnames = self.params['sheetnames'][0]### Only one sheet, but its a list
+          input_datasets = self.params['input_datasets'] ### Only one dataset, but its a list
+          sheetnames = self.params['sheetnames']### Only one sheet, but its a list
           bigquery_dataset = self.params['bigquery_dataset']
           destination_engine = self.params['destination_engine']
           path_notebook = self.params['path_notebook_studio']
