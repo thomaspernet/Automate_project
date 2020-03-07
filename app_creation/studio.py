@@ -9,7 +9,7 @@ from GoogleDrivePy.google_drive import connect_drive
 from GoogleDrivePy.google_platform import connect_cloud_platform
 
 class connector_notebook:
-    def __init__(self):
+    def __init__(self, params):
         """
         """
         self.params = params
