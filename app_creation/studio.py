@@ -25,7 +25,9 @@ class connector_notebook:
           sheetnames = self.params['sheetnames']### Only one sheet, but its a list
           bigquery_dataset = self.params['bigquery_dataset']
           destination_engine = self.params['destination_engine']
-          path_notebook = self.params['path_notebook_studio']
+          path_destination = self.params['path_destination_studio']
+          path_notebook = os.path.join(path_destination,
+           'Template_studio.ipynb')
           project= 'valid-pagoda-132423'
           username = "thomas"
           pathtoken = self.params['pathtoken']
@@ -202,4 +204,5 @@ class connector_notebook:
               else:
                   nb['cells'].extend([nbf.v4.new_code_cell(v)])
           name_nb = name_project + '_studio.ipynb'
+          os.chdir(path_destination)
           nbf.write(nb, name_nb)
